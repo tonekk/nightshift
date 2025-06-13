@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Wer macht die Nacht?</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@900&display=swap" rel="stylesheet">
+  <style>
+    body {
+      margin: 0;
+      padding: 2rem;
+      background: linear-gradient(135deg, #cfd9df 0%, #e2ebf0 100%);
+      font-family: 'Roboto', sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      min-height: 100vh;
+      box-sizing: border-box;
+    }
+
+    h1 {
+      font-size: 4rem;
+      margin-bottom: 1rem;
+    }
+
+    .progress {
+      font-size: 1.5rem;
+      margin-bottom: 2rem;
+      color: #555;
+    }
+
+    .wizard {
+      width: 100%;
+      max-width: 600px;
+    }
+
+    .step {
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+      pointer-events: none;
+      position: absolute;
+      width: 100%;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+    }
+
+    .step.active {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+      pointer-events: auto;
+      position: relative;
+    }
+
+    label {
+      font-size: 2rem;
+      display: block;
+      margin-bottom: 1rem;
+    }
+
+    select, input[type="date"], button {
+      font-size: 2rem;
+      padding: 1rem 2rem;
+      margin-bottom: 2rem;
+      border-radius: 8px;
+      border: 2px solid #333;
+      width: 100%;
+      max-width: 400px;
+    }
+
+    button {
+      cursor: pointer;
+      background-color: #333;
+      color: #fff;
+      transition: background-color 0.3s;
+    }
+
+    button:hover {
+      background-color: #555;
+    }
+
+    #resultText {
+      font-size: 3rem;
+      margin-top: 2rem;
+    }
+
+    .valeria {
+      color: #d63384;
+    }
+
+    .finn {
+      color: #339af0;
+    }
+
+    .option-group {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .option-group label {
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+      cursor: pointer;
+    }
+
+    .option-group input[type="radio"] {
+      margin-right: 1rem;
+      transform: scale(1.5);
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Wer macht die Nacht?</h1>
+  <div class="progress" id="progress">Schritt 1/4</div>
+
+  <div class="wizard">
+    <!-- Step 1 -->
+    <div class="step active" id="step1">
+      <label for="lastNight">Wer hat die letzte Nacht gemacht?</label>
+      <select id="lastNight">
+        <option value="Valeria">Valeria</option>
+        <option value="Finn">Finn</option>
+      </select>
+      <br>
+      <button onclick="nextStep(2)">Weiter</button>
+    </div>
+
+    <!-- Step 2 -->
+    <div class="step" id="step2">
+      <label for="date">Datum wählen:</label>
+      <input type="date" id="date" oninput="updateFormulationOptions()">
+      <br>
+      <button onclick="prevStep(1)">Zurück</button>
+      <button onclick="nextStep(3)">Weiter</button>
+    </div>
+
+    <!-- Step 3 -->
+    <div class="step" id="step3">
+      <div class="option-group" id="formulationOptions">
+        <!-- Wird dynamisch befüllt -->
+      </div>
+      <br>
+      <button onclick="prevStep(2)">Zurück</button>
+      <button onclick="calculateAndNext()">Weiter</button>
+    </div>
+
+    <!-- Step 4 -->
+    <div class="step" id="step4">
+      <div id="resultText"></div>
+      <br>
+      <button onclick="restart()">Neu starten</button>
+    </div>
+  </div>
+
+  <script>
+    function nextStep(stepNumber) {
+      document.querySelectorAll('.step').forEach(step => step.classList.remove('active'));
+      document.getElementById(`step${stepNumber}`).classList.add('active');
+      updateProgress(stepNumber);
+      if (stepNumber === 3) {
+        updateFormulationOptions();
+      }
+    }
+
+    function prevStep(stepNumber) {
+      nextStep(stepNumber);
+    }
+
+    function calculateAndNext() {
+      const lastNight = document.getElementById('lastNight').value;
+      const dateInput = document.getElementById('date').value;
+
+      if (!dateInput) {
+        alert("Bitte wähle ein Datum aus.");
+        return;
+      }
+
+      const selectedFormulation = document.querySelector('input[name="nightFormulation"]:checked').value;
+      const selectedDate = new Date(dateInput);
+
+      // Hier kommt die Logik:
+      // Wenn "zum" → 1 Tag abziehen
+      const shiftDate = (selectedFormulation === 'zum') ?
+        new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate() - 1) :
+        selectedDate;
+
+      const baseDate = new Date("2025-01-01"); // Referenzdatum
+
+      const diffTime = shiftDate - baseDate;
+      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+      const shift = diffDays % 2;
+
+      let resultPerson;
+      if (shift === 0) {
+        resultPerson = lastNight;
+      } else {
+        resultPerson = (lastNight === "Valeria") ? "Finn" : "Valeria";
+      }
+
+      const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+      const formattedDate = selectedDate.toLocaleDateString('de-DE', options);
+
+      const personClass = resultPerson === 'Valeria' ? 'valeria' : 'finn';
+
+      // Ergebnistext abhängig von Auswahl
+      const textFormulation = (selectedFormulation === 'zum') ? 'Die Nacht zum' : 'Die Nacht am';
+
+      document.getElementById('resultText').innerHTML =
+        `<span class="${personClass}">${resultPerson}</span> macht ${textFormulation} ${formattedDate}`;
+
+      nextStep(4);
+    }
+
+    function restart() {
+      document.getElementById('lastNight').value = 'Valeria';
+      document.getElementById('date').value = '';
+      updateFormulationOptions();
+      nextStep(1);
+    }
+
+    function updateProgress(stepNumber) {
+      const progressText = `Schritt ${stepNumber}/4`;
+      document.getElementById('progress').textContent = progressText;
+    }
+
+    function updateFormulationOptions() {
+      const dateInput = document.getElementById('date').value;
+      const formulationOptionsDiv = document.getElementById('formulationOptions');
+      formulationOptionsDiv.innerHTML = '';
+
+      let shortDate = '--.--';
+      if (dateInput) {
+        const selectedDate = new Date(dateInput);
+        const day = String(selectedDate.getDate()).padStart(2, '0');
+        const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
+        shortDate = `${day}.${month}.`;
+      }
+
+      // Jetzt bauen wir die Optionen
+      const options = [
+        { value: 'am', text: `Die Nacht am ${shortDate}` },
+        { value: 'zum', text: `Die Nacht zum ${shortDate}` }
+      ];
+
+      options.forEach((opt, index) => {
+        const id = `formulation${index}`;
+        const label = document.createElement('label');
+        const radio = document.createElement('input');
+        radio.type = 'radio';
+        radio.name = 'nightFormulation';
+        radio.value = opt.value;
+        radio.id = id;
+        if (index === 0) radio.checked = true; // default
+
+        label.appendChild(radio);
+        label.appendChild(document.createTextNode(' ' + opt.text));
+        formulationOptionsDiv.appendChild(label);
+      });
+    }
+  </script>
+
+</body>
+</html>
